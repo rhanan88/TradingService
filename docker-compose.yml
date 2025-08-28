@@ -1,0 +1,44 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "Qwerty!23"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  trading-api:
+    build:
+      context: .
+      dockerfile: TradingService.Api/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=TradingDB;User Id=sa;Password=Qwerty!23;TrustServerCertificate=true
+      - ConnectionStrings__RabbitMQ=rabbitmq
+
+  trading-consumer:
+    build:
+      context: .
+      dockerfile: TradingService.Consumer/Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - ConnectionStrings__RabbitMQ=rabbitmq
+
+volumes:
+  sqlserver_data:
+  rabbitmq_data:
